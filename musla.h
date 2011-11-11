@@ -7,7 +7,16 @@ typedef struct {
 	double S;
 	double R;
 	char name[16];
+	char type;
 } MUSLA_Instrument;
+
+typedef enum {
+   ATTACK,
+   DECAY,
+   SUSTAIN,
+   RELEASE
+} ADSRState;
+ 
 
 typedef struct {
 	char name[16];
@@ -36,3 +45,4 @@ int MUSLA_WriteSong(MUSLA_Song *song, const char *fileName, double sampleRate);
 void MUSLA_DestroySong(MUSLA_Song *song);
 double *MUSLA_RenderSong(MUSLA_Song *song, double sampleRate);
 double MUSLA_RenderFrame(MUSLA_Song *song, double time);
+double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time);

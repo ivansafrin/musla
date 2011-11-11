@@ -17,11 +17,51 @@ MUSLA_Song *MUSLA_ReadFile(const char *fileName) {
 	return song;
 }
 
+double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time) {
+	double val;
+	double freq = 440;
+
+	double adsrVal;
+	ADSRState state = ATTACK;
+	
+	if(time > instrument->A)
+		state = DECAY;
+	if(time > instrument->D)
+		state = SUSTAIN;
+	if(time > instrument->S)
+		state = RELEASE;
+
+	switch(state) {
+		case ATTACK:
+			adsrVal = time/instrument->A;
+		break;
+		case DECAY:
+			adsrVal = 0.5+ ((time-instrument->A)/(instrument->D - instrument->A) * 0.5);
+		break;
+		case SUSTAIN:
+			adsrVal = 0.5;
+		break;
+		case RELEASE:
+			adsrVal = ((time-instrument->S)/(instrument->R - instrument->S) * 0.5);
+		break;
+	}
+
+	val = sin(2.0 * adsrVal * M_PI * time * freq);
+	//val *= adsrVal;
+
+	return val;
+}
+
 double MUSLA_RenderFrame(MUSLA_Song *song, double time) {
 	double val;
 	int i;
 
 	MUSLA_Instrument ins;
+	ins.A = 2.5;
+	ins.D = 0.2;	
+	ins.S = 0.7;
+	ins.R = 0.3;
+	val = MUSLA_GetInstrumentValue(&ins, time);
 
 	for(i = 0; i < song->numTracks; i++) {
 		MUSLA_Track *track = song->tracks[i];
