@@ -26,29 +26,33 @@ double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time) {
 	
 	if(time > instrument->A)
 		state = DECAY;
-	if(time > instrument->D)
+	if(time > instrument->D + instrument->A)
 		state = SUSTAIN;
-	if(time > instrument->S)
+	if(time > instrument->S + instrument->D + instrument->A)
 		state = RELEASE;
 
+	double sustainLevel = 0.5;
 	switch(state) {
 		case ATTACK:
 			adsrVal = time/instrument->A;
 		break;
 		case DECAY:
-			adsrVal = 0.5+ ((time-instrument->A)/(instrument->D - instrument->A) * 0.5);
+			adsrVal = sustainLevel + ((1.0-sustainLevel) * (1.0-((time-instrument->A)/instrument->D)));
 		break;
 		case SUSTAIN:
-			adsrVal = 0.5;
+			adsrVal = sustainLevel;
 		break;
 		case RELEASE:
-			adsrVal = ((time-instrument->S)/(instrument->R - instrument->S) * 0.5);
+			adsrVal = sustainLevel * (1.0-((time-instrument->A-instrument->D-instrument->S)/instrument->R)); 
 		break;
 	}
 
-	val = sin(2.0 * adsrVal * M_PI * time * freq);
-	//val *= adsrVal;
+	if(adsrVal < 0)
+		adsrVal = 0;
+	if(adsrVal > 1)
+		adsrVal = 1;
 
+	val = adsrVal * sin(2.0 * M_PI * time * freq);
 	return val;
 }
 
@@ -57,10 +61,10 @@ double MUSLA_RenderFrame(MUSLA_Song *song, double time) {
 	int i;
 
 	MUSLA_Instrument ins;
-	ins.A = 2.5;
-	ins.D = 0.2;	
-	ins.S = 0.7;
-	ins.R = 0.3;
+	ins.A = 1.0;
+	ins.D = 1.0;	
+	ins.S = 1.0;
+	ins.R = 1.0;
 	val = MUSLA_GetInstrumentValue(&ins, time);
 
 	for(i = 0; i < song->numTracks; i++) {
