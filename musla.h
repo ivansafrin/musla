@@ -6,6 +6,7 @@ typedef struct {
 	double D;
 	double S;
 	double R;
+	double sustainLevel;
 	char name[16];
 	char type;
 } MUSLA_Instrument;
@@ -27,8 +28,10 @@ typedef struct {
 typedef struct {
 	MUSLA_Instrument *instrument;
 	int length;
-	MUSLA_Pattern **patterns;
-	int *pitchVars;
+	MUSLA_Pattern *pattern;
+	char patmap[64];
+	int baseOctave;
+	double resolution;
 } MUSLA_Track;
 
 typedef struct {
@@ -45,4 +48,4 @@ int MUSLA_WriteSong(MUSLA_Song *song, const char *fileName, double sampleRate);
 void MUSLA_DestroySong(MUSLA_Song *song);
 double *MUSLA_RenderSong(MUSLA_Song *song, double sampleRate);
 double MUSLA_RenderFrame(MUSLA_Song *song, double time);
-double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time);
+double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time, double freq);
