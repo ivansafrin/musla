@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include "musla.h"
 
@@ -18,12 +20,32 @@ MUSLA_Song *MUSLA_ReadFile(const char *fileName) {
 	song->bpm = 120;
 	song->numTracks = 1;
 	
+	MUSLA_Instrument *ins = (MUSLA_Instrument*)malloc(sizeof(MUSLA_Instrument));;
+	ins->A = 0.1;
+	ins->D = 0.1;	
+	ins->S = 0.2;
+	ins->R = 0.1;
+	ins->sustainLevel = 0.1;
+
+	MUSLA_Pattern *pat = (MUSLA_Pattern*) malloc(sizeof(MUSLA_Pattern));
+	pat->length = 16;
+	char notes[16] = {0,1,2,3,4,5,6,7,8,9,10,11,11,11,11,11};
+	memcpy(pat->notes, notes, 16);
+	
 	MUSLA_Track *track = (MUSLA_Track*)malloc(sizeof(MUSLA_Track));
-	track->length = 16;
-	//track->instrument = instrument;
+	track->instrument = ins;
+	track->pattern = pat;
+	track->length = 2;
+	track->instrument = ins;
+	track->baseOctave = 3;
+	track->resolution = 0.25;
+	char pats[2] = {-1,2};
+	memcpy(track->patmap, pats, 2);
 
 	song->tracks = malloc(sizeof(void*));
 	song->tracks[0] = track;
+
+
 	return song;
 }
 
@@ -86,49 +108,35 @@ double MUSLA_RenderTrackAtOffset(MUSLA_Track *track, int octaveOffset, double ti
 
 }
 
-double MUSLA_RenderFrame(MUSLA_Song *song, double time) {
+double MUSLA_RenderTrack(MUSLA_Track *track, double time, double songBpm) {
 	double val;
-	int i;
+	double bpm = songBpm/track->resolution;
 
-	MUSLA_Instrument ins;
-	ins.A = 0.1;
-	ins.D = 0.1;	
-	ins.S = 0.2;
-	ins.R = 0.1;
-	ins.sustainLevel = 0.1;
-
-	MUSLA_Pattern pat;
-	pat.length = 16;
-	char notes[16] = {0,1,2,3,4,5,6,7,8,9,10,11,11,11,11,11};
-	memcpy(pat.notes, notes, 16);
-	
-	MUSLA_Track track;
-	track.pattern = &pat;
-	track.length = 2;
-	track.instrument = &ins;
-	track.baseOctave = 3;
-	track.resolution = 0.25;
-	char pats[2] = {-1,2};
-	memcpy(track.patmap, pats, 2);
-	
-	double bpm = song->bpm/track.resolution;
-
-	double instrumentDuration = ins.A + ins.D + ins.S + ins.R;
+	double instrumentDuration = track->instrument->A + track->instrument->D + track->instrument->S + track->instrument->R;
 	int backSamples = ceil(instrumentDuration / (60.0/bpm));
 	int j;
 	val = 0;
 	for(j=0; j < backSamples; j++) {
 			double timeOffset = (60.0/bpm) * ((double)j);	
-			int octaveOffset = floor((time-timeOffset)/(pat.length*(60.0/bpm)));
+			int octaveOffset = floor((time-timeOffset)/(track->pattern->length*(60.0/bpm)));
 			if(octaveOffset >= 0) {
-				val += MUSLA_RenderTrackAtOffset(&track, octaveOffset, time, timeOffset, bpm);
+				val += MUSLA_RenderTrackAtOffset(track, octaveOffset, time, timeOffset, bpm);
 			}
 	}
+	
+	// TODO: Fix this hacky normalization
 	val /= ((double)backSamples);
 	val *= 2.0;
+	return val;
+}
+
+double MUSLA_RenderFrame(MUSLA_Song *song, double time) {
+	double val;
+	int i;
 
 	for(i = 0; i < song->numTracks; i++) {
 		MUSLA_Track *track = song->tracks[i];
+		val = MUSLA_RenderTrack(track, time, song->bpm);
 	}
 	return val;
 }
