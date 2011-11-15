@@ -67,6 +67,25 @@ double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time, doubl
 	return val;
 }
 
+double MUSLA_RenderTrackAtOffset(MUSLA_Track *track, int octaveOffset, double time, double timeOffset, double bpm) {
+	double val;
+	if(octaveOffset >= track->length)
+		octaveOffset  = octaveOffset % track->length;
+	int base_octave = track->baseOctave + track->patmap[octaveOffset];
+
+	MUSLA_Pattern *pat = track->pattern;
+	int notemap = floor((time-timeOffset) / (60.0/bpm));
+	if(notemap >= pat->length)
+		notemap  = notemap % pat->length;
+	
+	int noteIndex = pat->notes[notemap] + (12*base_octave);
+	if(noteIndex > 95)
+		noteIndex = 95;
+	
+	val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex]);
+
+}
+
 double MUSLA_RenderFrame(MUSLA_Song *song, double time) {
 	double val;
 	int i;
@@ -86,27 +105,27 @@ double MUSLA_RenderFrame(MUSLA_Song *song, double time) {
 	MUSLA_Track track;
 	track.pattern = &pat;
 	track.length = 2;
+	track.instrument = &ins;
 	track.baseOctave = 3;
 	track.resolution = 0.25;
 	char pats[2] = {-1,2};
 	memcpy(track.patmap, pats, 2);
 	
 	double bpm = song->bpm/track.resolution;
-	
-	int octaveOffset = floor(time/(pat.length*(60.0/bpm)));
-	if(octaveOffset >= track.length)
-		octaveOffset  = octaveOffset % track.length;
-	int base_octave = track.baseOctave + track.patmap[octaveOffset];
 
-	int notemap = floor(time / (60.0/bpm));
-	if(notemap >= pat.length)
-		notemap  = notemap % pat.length;
-
-	int noteIndex = pat.notes[notemap] + (12*base_octave);
-	if(noteIndex > 95)
-		noteIndex = 95;
-	val = MUSLA_GetInstrumentValue(&ins, fmod(time, 60.0/bpm), notes_freq_map[noteIndex]);
-
+	double instrumentDuration = ins.A + ins.D + ins.S + ins.R;
+	int backSamples = ceil(instrumentDuration / (60.0/bpm));
+	int j;
+	val = 0;
+	for(j=0; j < backSamples; j++) {
+			double timeOffset = (60.0/bpm) * ((double)j);	
+			int octaveOffset = floor((time-timeOffset)/(pat.length*(60.0/bpm)));
+			if(octaveOffset >= 0) {
+				val += MUSLA_RenderTrackAtOffset(&track, octaveOffset, time, timeOffset, bpm);
+			}
+	}
+	val /= ((double)backSamples);
+	val *= 2.0;
 
 	for(i = 0; i < song->numTracks; i++) {
 		MUSLA_Track *track = song->tracks[i];
