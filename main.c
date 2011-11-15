@@ -14,38 +14,366 @@ double notes_freq_map[] = { 16.35, 17.32, 18.35, 19.45, 20.6, 21.83, 23.12, 24.5
         2093, 2217.46, 2349.32, 2489.02, 2637.02, 2793.83, 2959.96, 3135.96, 3322.44, 3520, 3729.31, 3951.07,
         4186.01, 4434.92, 4698.64, 4978.03};
 
+void MUSLA_Error(const char *msg, int lineNumber) {
+	printf("Error on line %d (%s)\n", lineNumber, msg);
+}
+
+int MUSLA_SetSongOptions(MUSLA_Song *song, char *line, int lineNumber) {
+	char *pch = strtok (line, " ");
+	int tokenIndex = 0;
+	while (pch) {
+		switch(tokenIndex) {
+			case 0:
+			break;
+			case 1:
+			{
+				double songDuration = atof(pch);	
+				printf("Song duration: %f\n", songDuration);	
+				song->duration = songDuration;
+			}
+			break;
+			case 2:
+			{
+				double songBpm = atof(pch);	
+				printf("Song BPM: %f\n", songBpm);	
+				song->bpm = songBpm;
+			}
+			break;
+			default:
+				MUSLA_Error("Too many options for S(ong).", lineNumber);
+				return 0;
+			break;
+		}
+		pch = strtok (NULL, " ");
+		tokenIndex++;
+	}
+	if(tokenIndex != 3) {
+		MUSLA_Error("Not enough options for S(ong).", lineNumber);
+		return 0;
+	}
+	return 1;
+}
+
+
+int MUSLA_AddInstrument(MUSLA_Song *song, char *line, int lineNumber) {
+	MUSLA_Instrument *ins = (MUSLA_Instrument*)malloc(sizeof(MUSLA_Instrument));;
+	char *pch = strtok (line, " ");
+	int tokenIndex = 0;
+	while (pch) {
+		switch(tokenIndex) {
+			case 0:
+			break;
+			case 1:
+				strcpy(ins->name, pch);
+				printf("Adding instrument: %s\n", ins->name);
+			break;
+			case 2:
+				if(strlen(pch) != 1) {
+					MUSLA_Error("Invalid instrument type.", lineNumber);
+					return 0;
+				}
+				ins->type = pch[0];
+			break;
+			case 3:
+			{
+				double A = atof(pch);	
+				ins->A = A;
+			}
+			break;
+			case 4:
+			{
+				double D = atof(pch);	
+				ins->D = D;
+			}
+			break;
+			case 5:
+			{
+				double S = atof(pch);	
+				ins->S = S;
+			}
+			break;
+			case 6:
+			{
+				double R = atof(pch);	
+				ins->R = R;
+			}
+			break;
+			case 7:
+			{
+				double sustainLevel = atof(pch);	
+				ins->sustainLevel = sustainLevel;
+			}
+			break;
+			default:
+				MUSLA_Error("Too many options for I(nstrument).", lineNumber);
+				return 0;
+			break;
+		}
+		pch = strtok (NULL, " ");
+		tokenIndex++;
+	}
+	if(tokenIndex != 8) {
+		MUSLA_Error("Not enough options for I(nstrument).", lineNumber);
+		return 0;
+	}
+
+	song->numInstruments++;
+	song->instruments = realloc(song->instruments, sizeof(void*) * song->numInstruments);
+	song->instruments[song->numInstruments-1] = ins;
+	
+	return 1;
+}
+
+int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
+	MUSLA_Pattern *pat = (MUSLA_Pattern*)malloc(sizeof(MUSLA_Pattern));;
+	char *pch = strtok (line, " ");
+	int tokenIndex = 0;
+	while (pch) {
+		switch(tokenIndex) {
+			case 0:
+			break;
+			case 1:
+				strcpy(pat->name, pch);
+				printf("Adding pattern: %s\n", pat->name);
+			break;
+			case 2:
+			{
+				char notes[2048];
+				int i;
+				int noteLen = 0;
+				for(i=0; i < strlen(pch); i++) {
+					switch(pch[i]) {
+						case 'A':
+							notes[noteLen] = 9;
+							noteLen++;
+						break;
+						case 'B':
+							notes[noteLen] = 11;
+							noteLen++;
+						break;
+						case 'C':
+							notes[noteLen] = 0;
+							noteLen++;
+						break;
+						case 'D':
+							notes[noteLen] = 2;
+							noteLen++;
+						break;
+						case 'E':
+							notes[noteLen] = 4;
+							noteLen++;
+						break;
+						case 'F':
+							notes[noteLen] = 5;
+							noteLen++;
+						break;
+						case 'G':
+							notes[noteLen] = 7;
+							noteLen++;
+						break;
+						case '#':	
+							if(noteLen > 0) {
+								notes[noteLen-1]--;
+							} else {
+								MUSLA_Error("# is not a valid note.", lineNumber);
+								return 0;
+							}
+						break;
+						case '\n':
+						break;
+						default:
+							{
+							char _err[128];
+							sprintf(_err, "%c is not a valid note.", pch[i]);
+							MUSLA_Error(_err, lineNumber);
+							return 0;
+							}
+						break;
+					}
+				}
+				pat->length = noteLen;
+				memcpy(pat->notes, notes, noteLen);
+			}
+			break;
+			default:
+				MUSLA_Error("Too many options for P(attern).", lineNumber);
+				return 0;
+			break;
+		}
+		pch = strtok (NULL, " ");
+		tokenIndex++;
+	}
+	if(tokenIndex != 3) {
+		MUSLA_Error("Not enough options for P(attern).", lineNumber);
+		return 0;
+	}
+
+
+	song->numPatterns++;
+	song->patterns = realloc(song->patterns, sizeof(void*) * song->numPatterns);
+	song->patterns[song->numPatterns-1] = pat;
+	
+	return 1;
+}
+
+MUSLA_Instrument *MUSLA_GetInstrumentByName(MUSLA_Song *song, char *name) {
+	int i;
+	for(i = 0; i < song->numInstruments; i++) {
+		MUSLA_Instrument *ins = song->instruments[i];
+		if(strcmp(name, ins->name) == 0) {
+			return ins;
+		}
+	}
+	return 0;
+}
+
+MUSLA_Pattern *MUSLA_GetPatternByName(MUSLA_Song *song, char *name) {
+	int i;
+	for(i = 0; i < song->numPatterns; i++) {
+		MUSLA_Pattern *pat = song->patterns[i];
+		if(strcmp(name, pat->name) == 0) {
+			return pat;
+		}
+	}
+	return 0;
+}
+
+int MUSLA_AddTrack(MUSLA_Song *song, char *line, int lineNumber) {
+	MUSLA_Track *track = (MUSLA_Track*)malloc(sizeof(MUSLA_Track));;
+	char *pch = strtok (line, " ");
+	int tokenIndex = 0;
+	
+	
+	char pats[2048];
+	int patLen = 0;
+
+	while (pch) {
+		switch(tokenIndex) {
+			case 0:
+			break;
+			case 1:
+			{
+				double volume = atof(pch);	
+				track->volume = volume;
+			}
+			break;
+			case 2:
+			{
+				double baseOctave = atoi(pch);	
+				track->baseOctave = baseOctave;
+			}
+			break;
+			case 3:
+			{
+				double resolution = atof(pch);	
+				track->resolution = resolution;
+			}
+			break;
+			case 4:
+			{
+				MUSLA_Instrument *ins = MUSLA_GetInstrumentByName(song, pch);
+				if(ins) {
+					track->instrument = ins;
+				} else {
+					char _err[128];
+					sprintf(_err, "Could not find instrument %s.", pch);
+					MUSLA_Error(_err, lineNumber);
+					return 0;
+				}
+			}
+			break;
+			case 5:
+			{
+				MUSLA_Pattern *pat = MUSLA_GetPatternByName(song, pch);
+				if(pat) {
+					track->pattern = pat;
+				} else {
+					char _err[128];
+					sprintf(_err, "Could not find pattern %s.", pch);
+					MUSLA_Error(_err, lineNumber);
+					return 0;
+				}
+			}
+			break;
+			default:
+				pats[patLen] = atoi(pch);
+				patLen++;
+			break;
+		}
+		pch = strtok (NULL, " ");
+		tokenIndex++;
+	}
+
+	if(tokenIndex < 6) {
+		MUSLA_Error("Not enough options for T(track).", lineNumber);
+		return 0;
+	}
+
+	track->length = patLen;
+	memcpy(track->patmap, pats, patLen);
+	printf("Adding track with instrument: %s and pattern: %s\n", track->instrument->name, track->pattern->name);
+
+	song->numTracks++;
+	song->tracks = realloc(song->tracks, sizeof(void*) * song->numTracks);
+	song->tracks[song->numTracks-1] = track;
+	
+	return 1;
+}
+
+int MUSLA_ProcessLine(MUSLA_Song *song, char *line, int lineNumber) {
+	char _err[128];
+	switch(line[0]) {
+		case 'S':
+			return MUSLA_SetSongOptions(song, line, lineNumber);
+		break;
+		case 'I':
+			return MUSLA_AddInstrument(song, line, lineNumber);
+		break;
+		case 'P':
+			return MUSLA_AddPattern(song, line, lineNumber);
+		break;
+		case 'T':
+			return MUSLA_AddTrack(song, line, lineNumber);
+		break;
+		case '#':
+		case ' ':
+		case '\n':
+			// comments
+		break;
+		default:
+			sprintf(_err, "%c is not a valid definition type.", line[0]);
+			MUSLA_Error(_err, lineNumber);
+			return 0;
+		break;
+	}
+	return 1;
+}
+
 MUSLA_Song *MUSLA_ReadFile(const char *fileName) {
 	MUSLA_Song *song = (MUSLA_Song*)malloc(sizeof(MUSLA_Song));
-	song->duration = 16;
+	song->duration = 5;
 	song->bpm = 120;
-	song->numTracks = 1;
-	
-	MUSLA_Instrument *ins = (MUSLA_Instrument*)malloc(sizeof(MUSLA_Instrument));;
-	ins->A = 0.1;
-	ins->D = 0.1;	
-	ins->S = 0.2;
-	ins->R = 0.1;
-	ins->sustainLevel = 0.1;
-
-	MUSLA_Pattern *pat = (MUSLA_Pattern*) malloc(sizeof(MUSLA_Pattern));
-	pat->length = 16;
-	char notes[16] = {0,1,2,3,4,5,6,7,8,9,10,11,11,11,11,11};
-	memcpy(pat->notes, notes, 16);
-	
-	MUSLA_Track *track = (MUSLA_Track*)malloc(sizeof(MUSLA_Track));
-	track->instrument = ins;
-	track->pattern = pat;
-	track->length = 2;
-	track->instrument = ins;
-	track->baseOctave = 3;
-	track->resolution = 0.25;
-	char pats[2] = {-1,2};
-	memcpy(track->patmap, pats, 2);
-
+	song->numTracks = 0;
+	song->numInstruments = 0;
+	song->numPatterns = 0;
+	song->instruments = malloc(sizeof(void*));
 	song->tracks = malloc(sizeof(void*));
-	song->tracks[0] = track;
+	song->patterns = malloc(sizeof(void*));
 
-
+	FILE *file = fopen(fileName, "r");
+	if (!file) {
+		printf("Invalid input file specified\n");
+		return 0;
+	}
+	
+	int lineNumber = 0;
+	char line[4096];
+	while(fgets(line, sizeof(line), file)) {
+		lineNumber++;
+		if(!MUSLA_ProcessLine(song, line, lineNumber)) {
+			return 0;
+		}
+	}
 	return song;
 }
 
@@ -126,7 +454,7 @@ double MUSLA_RenderTrack(MUSLA_Track *track, double time, double songBpm) {
 	
 	// TODO: Fix this hacky normalization
 	val /= ((double)backSamples);
-	val *= 2.0;
+	//val *= 2.0;
 	return val;
 }
 
@@ -191,9 +519,22 @@ void MUSLA_DestroySong(MUSLA_Song *song) {
 }
 
 int main(int argc, char *argv[]) {
-	printf("MUSical LAnguage compiler.\n");
-	MUSLA_Song *song = MUSLA_ReadFile("test.mus");
-	MUSLA_WriteSong(song, "test.wav", 44100);
+	printf("MUS(ical) LA(nguage) command line synthesizer.\n\n");
+	if(argc != 3) {
+		printf("Invalid options. See below for proper command format\n");
+		printf("\n\n./musla input.mus output.wav\n\n\n");
+		return 1;
+	}
+	MUSLA_Song *song = MUSLA_ReadFile(argv[1]);
+
+	if(!song) {
+		printf("Aborting...\n");
+		return 1;
+	}
+
+	MUSLA_WriteSong(song, argv[2], 44100);
 	MUSLA_DestroySong(song);
+	
+	printf("Song written to file!\n");
 	return 0;
 }

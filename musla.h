@@ -32,6 +32,7 @@ typedef struct {
 	char patmap[64];
 	int baseOctave;
 	double resolution;
+	double volume;
 } MUSLA_Track;
 
 typedef struct {
@@ -40,6 +41,13 @@ typedef struct {
 
 	int numTracks;
 	MUSLA_Track **tracks;
+
+	int numInstruments;
+	MUSLA_Instrument **instruments;
+
+	int numPatterns;
+	MUSLA_Pattern **patterns;
+
 } MUSLA_Song;
 
 
@@ -49,3 +57,5 @@ void MUSLA_DestroySong(MUSLA_Song *song);
 double *MUSLA_RenderSong(MUSLA_Song *song, double sampleRate);
 double MUSLA_RenderFrame(MUSLA_Song *song, double time);
 double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time, double freq);
+
+void MUSLA_Error(const char *msg, int lineNumber);
