@@ -1,7 +1,9 @@
+# This is a comment
 S 5 120
 I DRUM N 30 30 10 70
 I LEAD S 31 43 434 23
 P L1 ACCACCACCACCA
 P D1 D..D..D..D..D
-T 1.0 3 1 L1 0 0 0 0 0 0
-T 1.0 3 1 D1 0 0 0 0 0 0
+T 1.0 3 0.5 L1 0 0 0 0 0 0
+T 1.0 3 0.5 D1 0 0 0 0 0 0
+

@@ -87,7 +87,7 @@ double MUSLA_RenderFrame(MUSLA_Song *song, double time) {
 	track.pattern = &pat;
 	track.length = 2;
 	track.baseOctave = 3;
-	track.resolution = 0.5;
+	track.resolution = 0.25;
 	char pats[2] = {-1,2};
 	memcpy(track.patmap, pats, 2);
 	
