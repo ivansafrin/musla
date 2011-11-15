@@ -459,13 +459,14 @@ double MUSLA_RenderTrack(MUSLA_Track *track, double time, double songBpm) {
 }
 
 double MUSLA_RenderFrame(MUSLA_Song *song, double time) {
-	double val;
+	double val = 0;
 	int i;
 
 	for(i = 0; i < song->numTracks; i++) {
 		MUSLA_Track *track = song->tracks[i];
-		val = MUSLA_RenderTrack(track, time, song->bpm);
+		val += MUSLA_RenderTrack(track, time, song->bpm);
 	}
+	val /= ((double)song->numTracks);
 	return val;
 }
 
