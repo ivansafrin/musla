@@ -179,6 +179,32 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 								return 0;
 							}
 						break;
+						case '1':
+						case '2':
+						case '3':
+						case '4':
+						case '5':
+						case '6':
+						case '7':
+						case '8':
+						{
+							if(noteLen > 0) {
+								char val[2];
+								val[0] = pch[i];
+								val[1] = '\0';
+								notes[noteLen-1] += (12*atoi(val));
+							} else {
+								char _err[128];
+								sprintf(_err, "%c is not a valid note.", pch[i]);
+								MUSLA_Error(_err, lineNumber);
+								return 0;
+							}
+						}
+						break;
+						case '.':
+							notes[noteLen] = 255;
+							noteLen++;
+						break;
 						case '\n':
 						break;
 						default:
@@ -428,12 +454,15 @@ double MUSLA_RenderTrackAtOffset(MUSLA_Track *track, int octaveOffset, double ti
 	if(notemap >= pat->length)
 		notemap  = notemap % pat->length;
 	
-	int noteIndex = pat->notes[notemap] + (12*base_octave);
-	if(noteIndex > 95)
-		noteIndex = 95;
-	
-	val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex]);
-
+	if(pat->notes[notemap] == (char)255)  {
+		val = 0;
+	} else {
+		int noteIndex = pat->notes[notemap] + (12*base_octave);
+		if(noteIndex > 95)
+			noteIndex = 95;
+		val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex]);
+	}
+	return val;
 }
 
 double MUSLA_RenderTrack(MUSLA_Track *track, double time, double songBpm) {
