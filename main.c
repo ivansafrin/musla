@@ -446,8 +446,26 @@ double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time, doubl
 		break;
 	}
 
+	double baseVal = 0;
+	switch(instrument->type) {
+		case 'S':
+			baseVal = sin((2.0 * M_PI * time * freq));
+		break;
+		case 'Q':
+			baseVal = (fmod(time * freq, 1.0) < 0.5) ? 1.0 : 0.0;
+			baseVal = 1.0 - (baseVal * 2.0);
+		break;
+		case 'T':
+			baseVal = 1.0-(fabs(1.0 - fmod(time * freq, 2.0))*2.0);
+		break;
+		case 'N':
+			baseVal = -1.0 + (((double)rand()/(double)RAND_MAX)*2.0);
+		break;
+	}
+		
+
 	clampVal(&adsrVal, 0.0, 1.0);
-	val = adsrVal * sin((2.0 * M_PI * time * freq));
+	val = adsrVal * baseVal;
 	return val;
 }
 
