@@ -202,7 +202,13 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 						}
 						break;
 						case '.':
+							// pause
 							notes[noteLen] = 255;
+							noteLen++;
+						break;
+						case '-':
+							// sustain
+							notes[noteLen] = 254;
 							noteLen++;
 						break;
 						case '\n':
@@ -410,16 +416,18 @@ void clampVal(double *val, double min, double max) {
 		*val = max;
 }
 
-double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time, double freq) {
+double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time, double freq, double sustainExtra) {
 	double val;
 	double adsrVal;
 	ADSRState state = ATTACK;
 	
+	double sustain = instrument->S + sustainExtra;
+
 	if(time >= instrument->A)
 		state = DECAY;
 	if(time >= instrument->D + instrument->A)
 		state = SUSTAIN;
-	if(time >= instrument->S + instrument->D + instrument->A)
+	if(time >= sustain + instrument->D + instrument->A)
 		state = RELEASE;
 
 	double sustainLevel = instrument->sustainLevel;
@@ -434,7 +442,7 @@ double MUSLA_GetInstrumentValue(MUSLA_Instrument *instrument, double time, doubl
 			adsrVal = sustainLevel;
 		break;
 		case RELEASE:
-			adsrVal = sustainLevel * (1.0-((time-instrument->A-instrument->D-instrument->S)/instrument->R)); 
+			adsrVal = sustainLevel * (1.0-((time-instrument->A-instrument->D-sustain)/instrument->R)); 
 		break;
 	}
 
@@ -456,11 +464,26 @@ double MUSLA_RenderTrackAtOffset(MUSLA_Track *track, int octaveOffset, double ti
 	
 	if(pat->notes[notemap] == (char)255)  {
 		val = 0;
+	} else if(pat->notes[notemap] == (char)254) {
+		int noteIndex = pat->notes[notemap-1] + (12*base_octave);
+		if(noteIndex > 95)
+			noteIndex = 95;
+		val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex], 0);
+		val = 0;
 	} else {
 		int noteIndex = pat->notes[notemap] + (12*base_octave);
 		if(noteIndex > 95)
 			noteIndex = 95;
-		val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex]);
+
+		double sustainExtra = 0;
+		int nextNotemap = notemap + 1;
+		if(nextNotemap >= pat->length)
+			nextNotemap  = nextNotemap % pat->length;
+			
+		if(pat->notes[nextNotemap] == (char)254) {
+			sustainExtra = (60.0/bpm);
+		}
+		val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex], sustainExtra/4);
 	}
 	return val;
 }
