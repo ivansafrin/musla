@@ -1,0 +1,12 @@
+# Super Mario Main Theme by Koji Kondo
+S 16 200
+I LEAD Q 0.01 0.05 0.05 0.05 0.5
+I BASS T 0.01 0.05 0.05 0.05 0.5
+P PAT1 EE.E.CE.G.......C...
+P PAT2 FF.F.FF.G...G...E..C
+P PAT3 ........B..........G
+P BPAT DD.D.DD.....G1...G1..E1
+T 0.4 5 0.5 LEAD PAT1 0
+T 0.4 4 0.5 LEAD PAT2 0
+T 0.4 4 0.5 LEAD PAT3 0
+T 0.7 3 0.5 BASS BPAT 1
