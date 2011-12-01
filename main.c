@@ -203,8 +203,12 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 							}
 						break;
 						case '#':	
-							if(noteLen > 0) {
-								notes[noteLen-1][chordPos]--;
+							if(noteLen > 0 || (isChord && chordPos > 0)) {
+								if(isChord) {
+									notes[noteLen][chordPos-1]--;
+								} else {
+									notes[noteLen-1][chordPos]--;
+								}
 							} else {
 								MUSLA_Error("# is not a valid note.", lineNumber);
 								return 0;
