@@ -2,7 +2,7 @@
 S 16 200
 I LEAD Q 0.01 0.05 0.05 0.05 0.5
 I BASS T 0.01 0.05 0.05 0.05 0.5
-P PAT1 [E1F][E1F].[E1F].[C1F][E1F].[G1GB]...G ...[C1E]..[CG]
-P BPAT D    D    .D    .D    D    ..     ...G1...G1   ..E1
-T 0.4 4 0.5 LEAD PAT1 0
+P PAT1 [E2F1][E2F1].[E2F1].[C2F1][E2F1].[G2G1B1]...G1...[C2E1]..[C1G1]..[E1G]..[C1A1].[D1B1].[D1@B1@][C1A1].
+P BPAT D     D     .D     .D     D     ..       ...G1...G1    ..E1    ..C1   ..F1    .G1    .G1@     F1    .
+T 0.4 3 0.5 LEAD PAT1 0
 T 0.7 3 0.5 BASS BPAT 1
