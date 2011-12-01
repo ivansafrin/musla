@@ -130,6 +130,12 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 	int tokenIndex = 0;
 	int chordPos = 0;
 	int isChord = 0;
+
+	char notes[2048][8];
+	memset(notes, 255, 2048*8);
+	int i;
+	int noteLen = 0;
+
 	while (pch) {
 		switch(tokenIndex) {
 			case 0:
@@ -138,12 +144,8 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 				strcpy(pat->name, pch);
 				printf("Adding pattern: %s\n", pat->name);
 			break;
-			case 2:
+			default:
 			{
-				char notes[2048][8];
-				memset(notes, 255, 2048*8);
-				int i;
-				int noteLen = 0;
 				for(i=0; i < strlen(pch); i++) {
 					switch(pch[i]) {
 						case 'A':
@@ -268,7 +270,6 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 							noteLen++;
 						break;
 						case '\n':
-						case ' ':
 						break;
 						default:
 							{
@@ -280,23 +281,19 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 						break;
 					}
 				}
-				pat->length = noteLen;
-				memcpy(pat->notes, notes, 2048*8);
 			}
-			break;
-			default:
-				MUSLA_Error("Too many options for P(attern).", lineNumber);
-				return 0;
 			break;
 		}
 		pch = strtok (NULL, " ");
 		tokenIndex++;
 	}
-	if(tokenIndex != 3) {
+	if(tokenIndex < 3) {
 		MUSLA_Error("Not enough options for P(attern).", lineNumber);
 		return 0;
 	}
 
+	pat->length = noteLen;
+	memcpy(pat->notes, notes, 2048*8);
 
 	song->numPatterns++;
 	song->patterns = realloc(song->patterns, sizeof(void*) * song->numPatterns);
