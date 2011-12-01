@@ -22,7 +22,7 @@ typedef enum {
 typedef struct {
 	char name[16];
 	int length;
-	char notes[64];
+	char notes[2048][8];
 } MUSLA_Pattern;
 
 typedef struct {

@@ -128,6 +128,8 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 	MUSLA_Pattern *pat = (MUSLA_Pattern*)malloc(sizeof(MUSLA_Pattern));;
 	char *pch = strtok (line, " ");
 	int tokenIndex = 0;
+	int chordPos = 0;
+	int isChord = 0;
 	while (pch) {
 		switch(tokenIndex) {
 			case 0:
@@ -138,42 +140,71 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 			break;
 			case 2:
 			{
-				char notes[2048];
+				char notes[2048][8];
+				memset(notes, 255, 2048*8);
 				int i;
 				int noteLen = 0;
 				for(i=0; i < strlen(pch); i++) {
 					switch(pch[i]) {
 						case 'A':
-							notes[noteLen] = 9;
-							noteLen++;
+							notes[noteLen][chordPos] = 9;
+							if(isChord) {
+								chordPos++;
+							} else {
+								noteLen++;
+							}
 						break;
 						case 'B':
-							notes[noteLen] = 11;
-							noteLen++;
+							notes[noteLen][chordPos] = 11;
+							if(isChord) {
+								chordPos++;
+							} else {
+								noteLen++;
+							}
 						break;
 						case 'C':
-							notes[noteLen] = 0;
-							noteLen++;
+							notes[noteLen][chordPos] = 0;
+							if(isChord) {
+								chordPos++;
+							} else {
+								noteLen++;
+							}
 						break;
 						case 'D':
-							notes[noteLen] = 2;
-							noteLen++;
+							notes[noteLen][chordPos] = 2;
+							if(isChord) {
+								chordPos++;
+							} else {
+								noteLen++;
+							}
 						break;
 						case 'E':
-							notes[noteLen] = 4;
-							noteLen++;
+							notes[noteLen][chordPos] = 4;
+							if(isChord) {
+								chordPos++;
+							} else {
+								noteLen++;
+							}
 						break;
 						case 'F':
-							notes[noteLen] = 5;
-							noteLen++;
+							notes[noteLen][chordPos] = 5;
+							if(isChord) {
+								chordPos++;
+							} else {
+								noteLen++;
+							}
 						break;
 						case 'G':
-							notes[noteLen] = 7;
-							noteLen++;
+							notes[noteLen][chordPos] = 7;
+							if(isChord) {
+								chordPos++;
+							} else {
+								noteLen++;
+							}
 						break;
 						case '#':	
 							if(noteLen > 0) {
-								notes[noteLen-1]--;
+								notes[noteLen-1][chordPos]--;
 							} else {
 								MUSLA_Error("# is not a valid note.", lineNumber);
 								return 0;
@@ -188,11 +219,15 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 						case '7':
 						case '8':
 						{
-							if(noteLen > 0) {
+							if(noteLen > 0 || (isChord && chordPos > 0)) {
 								char val[2];
 								val[0] = pch[i];
 								val[1] = '\0';
-								notes[noteLen-1] += (12*atoi(val));
+								if(isChord) {
+									notes[noteLen][chordPos-1] += (12*atoi(val));
+								} else {
+									notes[noteLen-1][chordPos] += (12*atoi(val));
+								}
 							} else {
 								char _err[128];
 								sprintf(_err, "%c is not a valid note.", pch[i]);
@@ -202,16 +237,34 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 						}
 						break;
 						case '.':
+							if(isChord) {
+								MUSLA_Error("Only notes are allowed inside chord.", lineNumber);
+								return 0;
+							}
 							// pause
-							notes[noteLen] = 255;
+							notes[noteLen][chordPos] = 255;
 							noteLen++;
 						break;
 						case '-':
+							if(isChord) {
+								MUSLA_Error("Only notes are allowed inside chord.", lineNumber);
+								return 0;
+							}
 							// sustain
-							notes[noteLen] = 254;
+							notes[noteLen][chordPos] = 254;
+							noteLen++;
+						break;
+						case '[':
+							chordPos = 0;
+							isChord = 1;
+						break;
+						case ']':
+							chordPos = 0;
+							isChord = 0;
 							noteLen++;
 						break;
 						case '\n':
+						case ' ':
 						break;
 						default:
 							{
@@ -224,7 +277,7 @@ int MUSLA_AddPattern(MUSLA_Song *song, char *line, int lineNumber) {
 					}
 				}
 				pat->length = noteLen;
-				memcpy(pat->notes, notes, noteLen);
+				memcpy(pat->notes, notes, 2048*8);
 			}
 			break;
 			default:
@@ -480,16 +533,21 @@ double MUSLA_RenderTrackAtOffset(MUSLA_Track *track, int octaveOffset, double ti
 	if(notemap >= pat->length)
 		notemap  = notemap % pat->length;
 	
-	if(pat->notes[notemap] == (char)255)  {
-		val = 0;
-	} else if(pat->notes[notemap] == (char)254) {
-		int noteIndex = pat->notes[notemap-1] + (12*base_octave);
-		if(noteIndex > 95)
-			noteIndex = 95;
-		val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex], 0);
-		val = 0;
+	int chordCount = 0;
+	int i;
+	val = 0;
+	for(i=0; i < 8; i++) {
+
+	if(pat->notes[notemap][i] == (char)255)  {
+		val += 0;
+	} else if(pat->notes[notemap][i] == (char)254) {
+	//	int noteIndex = pat->notes[notemap-1][i] + (12*base_octave);
+	//	if(noteIndex > 95)
+	//		noteIndex = 95;
+	//	val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex], 0);
+		val += 0;
 	} else {
-		int noteIndex = pat->notes[notemap] + (12*base_octave);
+		int noteIndex = pat->notes[notemap][i] + (12*base_octave);
 		if(noteIndex > 95)
 			noteIndex = 95;
 
@@ -498,12 +556,18 @@ double MUSLA_RenderTrackAtOffset(MUSLA_Track *track, int octaveOffset, double ti
 		if(nextNotemap >= pat->length)
 			nextNotemap  = nextNotemap % pat->length;
 			
-		if(pat->notes[nextNotemap] == (char)254) {
+		if(pat->notes[nextNotemap][i] == (char)254) {
 			sustainExtra = (60.0/bpm);
 		}
-		val = MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex], sustainExtra/4);
+		val += MUSLA_GetInstrumentValue(track->instrument, fmod(time, 60.0/bpm) + timeOffset, notes_freq_map[noteIndex], sustainExtra/4);
+		chordCount++;
 	}
-	return val;
+
+	}
+
+	if(!chordCount)
+		chordCount = 1;
+	return val/chordCount;
 }
 
 double MUSLA_RenderTrack(MUSLA_Track *track, double time, double songBpm) {

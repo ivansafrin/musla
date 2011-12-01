@@ -1,0 +1,10 @@
+# This is a comment
+S 16 120
+I LEAD Q 0.1 0.1 0.2 0.1 0.5
+I PAD T 0.1 0.1 0.2 0.1 0.5
+I HIHAT N 0.0 0.05 0.0 0.00 0.3
+I SNARE N 0.0 0.1 0.0 0.00 0.6
+P PAT1 CF#GCF#G
+P PAT2 F#...GCD.....
+T 0.3 3 0.50 PAD PAT1 2 2 3 3 1 1 
+T 0.7 3 0.50 LEAD PAT2 1 2
