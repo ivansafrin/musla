@@ -28,8 +28,8 @@ typedef struct {
 typedef struct {
 	MUSLA_Instrument *instrument;
 	int length;
-	MUSLA_Pattern *pattern;
-	char patmap[64];
+	MUSLA_Pattern *patterns[1024];
+	char patmap[1024];
 	int baseOctave;
 	double resolution;
 	double volume;
