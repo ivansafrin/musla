@@ -341,9 +341,8 @@ int MUSLA_AddTrack(MUSLA_Song *song, char *line, int lineNumber) {
 	char *pch = strtok (line, " ");
 	int tokenIndex = 0;
 	
-	char pats[1024];
-	MUSLA_Pattern *patterns[1024];
-	MUSLA_Pattern *curPat = NULL;
+	
+	char pats[2048];
 	int patLen = 0;
 
 	while (pch) {
@@ -381,40 +380,36 @@ int MUSLA_AddTrack(MUSLA_Song *song, char *line, int lineNumber) {
 				}
 			}
 			break;
-			default:
-				if(pch[0] != '!') {
-					if(!curPat) {
-						MUSLA_Error("You must define a patter in track before placing octave offsets!", lineNumber);
-					}
-					pats[patLen] = atoi(pch);
-					patterns[patLen] = curPat;
-					patLen++;
+			case 5:
+			{
+				MUSLA_Pattern *pat = MUSLA_GetPatternByName(song, pch);
+				if(pat) {
+					track->pattern = pat;
 				} else {
-					MUSLA_Pattern *pat = MUSLA_GetPatternByName(song, pch+1);
-					if(pat) {
-						curPat = pat;
-					} else {
-						char _err[128];
-						sprintf(_err, "Could not find pattern %s.", pch+1);
-						MUSLA_Error(_err, lineNumber);
-						return 0;
-					}
+					char _err[128];
+					sprintf(_err, "Could not find pattern %s.", pch);
+					MUSLA_Error(_err, lineNumber);
+					return 0;
 				}
+			}
+			break;
+			default:
+				pats[patLen] = atoi(pch);
+				patLen++;
 			break;
 		}
 		pch = strtok (NULL, " ");
 		tokenIndex++;
 	}
 
-	if(tokenIndex < 5) {
+	if(tokenIndex < 6) {
 		MUSLA_Error("Not enough options for T(track).", lineNumber);
 		return 0;
 	}
 
 	track->length = patLen;
-	memcpy(track->patmap, pats, sizeof(pats));
-	memcpy(track->patterns, patterns, sizeof(patterns));
-	printf("Adding track with instrument: %s\n", track->instrument->name);
+	memcpy(track->patmap, pats, patLen);
+	printf("Adding track with instrument: %s and pattern: %s\n", track->instrument->name, track->pattern->name);
 
 	song->numTracks++;
 	song->tracks = realloc(song->tracks, sizeof(void*) * song->numTracks);
@@ -546,7 +541,7 @@ double MUSLA_RenderTrackAtOffset(MUSLA_Track *track, int octaveOffset, double ti
 		octaveOffset  = octaveOffset % track->length;
 	int base_octave = track->baseOctave + track->patmap[octaveOffset];
 
-	MUSLA_Pattern *pat = track->patterns[octaveOffset];
+	MUSLA_Pattern *pat = track->pattern;
 	int notemap = floor((time-timeOffset) / (60.0/bpm));
 	if(notemap >= pat->length)
 		notemap  = notemap % pat->length;
@@ -594,24 +589,11 @@ double MUSLA_RenderTrack(MUSLA_Track *track, double time, double songBpm) {
 
 	double instrumentDuration = track->instrument->A + track->instrument->D + track->instrument->S + track->instrument->R;
 	int backSamples = ceil(instrumentDuration / (60.0/bpm));
-	int j,i;
+	int j;
 	val = 0;
 	for(j=0; j < backSamples; j++) {
 			double timeOffset = (60.0/bpm) * ((double)j);	
-	//		int octaveOffset = floor((time-timeOffset)/(track->pattern->length*(60.0/bpm)));
-
-			double pOffset = 0;
-			i=0;
-			int octaveOffset = 0;
-			while(pOffset < (time-timeOffset)) {
-				pOffset += track->patterns[i]->length*(60.0/bpm);
-				i++;
-				octaveOffset++;
-				if(i == track->length) {
-					i = 0;
-				}
-			}
-			octaveOffset--;
+			int octaveOffset = floor((time-timeOffset)/(track->pattern->length*(60.0/bpm)));
 			if(octaveOffset >= 0) {
 				val += MUSLA_RenderTrackAtOffset(track, octaveOffset, time, timeOffset, bpm);
 			}
