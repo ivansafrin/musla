@@ -1,12 +1,3 @@
-musla
-=====
-
-Command line synthesizer and musical markup language
-
-Requires libsndfile, you can get it here: http://www.mega-nerd.com/libsndfile/
-
-Simple tutorial below. See .mus files for more examples. 
-
 # This is a comment (line must start with #)
 # S is for Song: DURATION(IN SECONDS) BPM
 S 16 120
